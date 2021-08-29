@@ -4,10 +4,12 @@ import logging
 import websockets
 import os
 import threading
+import socket
+from utils.crypto import encryptImage
+from utils.socket import recvall
 # Env
 SERVER_PORT = os.getenv('SERVER_PORT', 6789)
 SERVER_URL = os.getenv('SERVER_URL', "localhost")
-
 # Setup logging
 logging.basicConfig()
 
@@ -19,12 +21,22 @@ CONNECTED_RESPONSE = {
     "response": "Connection established"
 }
 
-
 async def handleEncryptImage(ws, image):
+  #Create socket connection
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  s.connect(("localhost", 6791))
+  s.send(json.dumps({
+    "option": "processImage",
+    "data": encryptImage(image).decode()
+  }).encode(), 8192)
+  response = recvall(s).decode()
+
+
+  parsedRes =  json.loads(response)
   await ws.send(json.dumps({
     "status": "ok",
     "type": "result_image",
-    "image": image
+    "image": parsedRes['image']
   }))
 
 async def init_connection(websocket, path):
